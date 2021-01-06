@@ -3,6 +3,7 @@ package com.GST.GSTWeb.GSTServiceProcessors;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Date;
@@ -399,6 +400,157 @@ public class dbQuery {
 		return return_value;
 	}
 	
+	public static String db_query_post_handover(String action, String user_id, String intro_string, String handover_detail) {
+		
+		String return_value = null;
+		
+		JSONObject search_result = new JSONObject();
+		search_result.put("action", action);
+		search_result.put("user_id", user_id);
+		
+		try {
+			GSTWebAPI_Global_Vars.check_db_connection();
+		
+			PreparedStatement ps_post_handover = GSTWebAPI_Global_Vars.db_conn.prepareStatement("insert into handover (user_id, intro_string, handover_detail, active) values (?, ?, ?, ?)");
+			ps_post_handover.setString(1, user_id);
+			ps_post_handover.setString(2, intro_string);
+			ps_post_handover.setString(3, handover_detail);
+			ps_post_handover.setString(4, "y");
+			ps_post_handover.executeUpdate();
+			
+			search_result.put("post_handover_result", "success");
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+			search_result.put("post_handover_result", "fail");
+		}
+		
+		return_value = search_result.toString();
+		return return_value;
+	}
+	
+	public static String db_query_club_detail(String action, String user_id, String post_id) {
+		
+		String return_value = null;
+		
+		String image_str;
+		JSONObject search_result = new JSONObject();
+		search_result.put("action", action);
+		search_result.put("user_id", user_id);
+		
+		try {
+			GSTWebAPI_Global_Vars.check_db_connection();
+			ResultSet rs_lesson_list;
+			
+			PreparedStatement ps_lesson_query = GSTWebAPI_Global_Vars.db_conn.prepareStatement("select * from club_info where idx=?");
+			ps_lesson_query.setInt(1, Integer.valueOf(post_id));
+			rs_lesson_list = ps_lesson_query.executeQuery();
+			
+			image_str = make_club_detail(rs_lesson_list);
+			
+			if(image_str != null){
+				search_result.put("data", image_str);
+				search_result.put("lesson_detail_result", "success");
+			} else {
+				search_result.put("lesson_detail_result", "fail");
+			}
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+			search_result.put("lesson_detail_result", "fail");
+		}
+		
+		return_value = search_result.toString();
+		return return_value;
+	}
+	
+	private static String make_club_detail(ResultSet rs_lesson_list) {
+		
+		byte [] data = null;
+		String data_str = null;
+		
+		try {
+			if (rs_lesson_list.next() != false) {
+				String intro_file_name = rs_lesson_list.getString("club_pic_location");
+//System.out.println("image location: " + intro_file_name);				
+				data = Files.readAllBytes(Paths.get(intro_file_name));
+				data_str = Base64.getEncoder().encodeToString(data);
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+		return data_str;
+	}
+
+	public static String db_query_upload_club_ad(String action, String user_id, String data_format, String intro, String comment, String data_tmp) {
+		
+		String return_value = null;
+		String club_pic_location = "/project/GrandSlamTennis/clubInfo/";
+		int club_info_insert_indx = 1;
+		
+		String image_str;
+		JSONObject search_result = new JSONObject();
+		search_result.put("action", action);
+		search_result.put("user_id", user_id);
+		
+		FileOutputStream fos = null;
+		File file;
+		
+		try {
+			GSTWebAPI_Global_Vars.check_db_connection();
+			
+			PreparedStatement ps_login_check = GSTWebAPI_Global_Vars.db_conn.prepareStatement("select * from club_info order by idx desc limit 1");
+			ResultSet rs = ps_login_check.executeQuery();
+			if(rs.next()) {
+				int tmp_idx = rs.getInt("idx");
+				club_info_insert_indx = tmp_idx + 1;
+			}
+			
+			
+			ps_login_check = GSTWebAPI_Global_Vars.db_conn.prepareStatement("insert into club_info (idx, user_id, intro_string, club_detail, club_pic_location, data_format) "
+																							 + "values (?, ?, ?, ?, ?, ?)");
+			ps_login_check.setInt(1, club_info_insert_indx);
+			ps_login_check.setString(2, user_id);
+			ps_login_check.setString(3, intro);
+			ps_login_check.setString(4, comment);
+			if(data_tmp != null && data_format != null) {
+				ps_login_check.setString(5, club_pic_location + club_info_insert_indx + "." + data_format);
+				ps_login_check.setString(6, data_format);
+			} else {
+				ps_login_check.setString(5, null);
+				ps_login_check.setString(6, "no_pic");
+			}
+			ps_login_check.executeUpdate();
+
+			if(data_tmp != null && data_format != null) {
+				//byte [] pic_bytes = Base64.getDecoder().decode(data_tmp);
+				byte [] pic_bytes = Base64.getMimeDecoder().decode(data_tmp);
+	
+				file = new File(club_pic_location + club_info_insert_indx + "." + data_format);
+				fos = new FileOutputStream(file);	
+				fos.write(pic_bytes);
+				fos.close();
+			}
+			
+			search_result.put("club_detail_result", "success");
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+			search_result.put("club_detail_result", "fail");
+			if(fos != null) {
+				try {
+					fos.close();
+				} catch(Exception ei) {
+					ei.printStackTrace();
+				}
+			}
+		}
+		
+		return_value = search_result.toString();
+		return return_value;
+	}
+	
 	private static String make_lesson_detail(ResultSet rs_lesson_list) {
 		
 		byte [] data = null;
@@ -495,6 +647,147 @@ public class dbQuery {
 		return search_result;
 	}
 	
+	public static String db_query_club_ad(String action, String user_id) {
+		
+		String return_value = null;
+		
+		JSONArray my_list;
+		JSONObject search_result = new JSONObject();
+		search_result.put("action", action);
+		search_result.put("user_id", user_id);
+		
+		try {
+			GSTWebAPI_Global_Vars.check_db_connection();
+			ResultSet rs_lesson_list;
+			
+			PreparedStatement ps_lesson_query = GSTWebAPI_Global_Vars.db_conn.prepareStatement("select * from club_info");
+			rs_lesson_list = ps_lesson_query.executeQuery();
+			
+			my_list = make_club_list(rs_lesson_list);
+			
+			if(my_list != null){
+				search_result.put("data", my_list);
+				search_result.put("club_ad_result", "success");
+			} else {
+				search_result.put("club_ad_result", "fail");
+			}
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+			search_result.put("club_ad_result", "fail");
+		}
+		
+		return_value = search_result.toString();
+		return return_value;
+	}
+	
+	public static String db_query_handover_ad(String action, String user_id) {
+		
+		String return_value = null;
+		
+		JSONArray my_list;
+		JSONObject search_result = new JSONObject();
+		search_result.put("action", action);
+		search_result.put("user_id", user_id);
+		
+		try {
+			GSTWebAPI_Global_Vars.check_db_connection();
+			ResultSet rs_lesson_list;
+			
+			PreparedStatement ps_lesson_query = GSTWebAPI_Global_Vars.db_conn.prepareStatement("select * from handover where active = ? order by idx desc");
+			ps_lesson_query.setString(1, "y");
+			rs_lesson_list = ps_lesson_query.executeQuery();
+			
+			my_list = make_handover_list(rs_lesson_list);
+			
+			if(my_list != null){
+				search_result.put("data", my_list);
+				search_result.put("handover_ad_result", "success");
+			} else {
+				search_result.put("handover_ad_result", "fail");
+			}
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+			search_result.put("handover_ad_result", "fail");
+		}
+		
+		return_value = search_result.toString();
+		return return_value;
+	}
+	
+	private static JSONArray make_handover_list(ResultSet rs_lesson_list) {
+		
+		JSONArray search_result = new JSONArray();
+		
+		try {
+			if (rs_lesson_list.next() != false) {
+				
+				rs_lesson_list.beforeFirst();
+				
+				while(rs_lesson_list.next()) {
+					JSONObject search_element = new JSONObject();
+					
+					String post_id = Integer.toString(rs_lesson_list.getInt("idx"));
+					String user_id = rs_lesson_list.getString("user_id");
+					String intro_string = rs_lesson_list.getString("intro_string");
+					String club_detail = rs_lesson_list.getString("handover_detail");
+//System.out.println(post_id + " / " + user_id + " / " + op_ntrp + " / " + op_howlong + " / " + op_gender + " / " + location + " / " + court_booked + " / " + p_comment);		
+					search_element.put("post_id", post_id.toString());
+					search_element.put("user_id", user_id);
+					search_element.put("intro_string", intro_string);
+					search_element.put("handover_detail", club_detail);
+					
+					search_result.add(search_element);
+				}
+			
+			}
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+		
+		return search_result;
+	}
+	
+	private static JSONArray make_club_list(ResultSet rs_lesson_list) {
+		
+		JSONArray search_result = new JSONArray();
+		
+		try {
+			if (rs_lesson_list.next() != false) {
+				
+				rs_lesson_list.beforeFirst();
+				
+				while(rs_lesson_list.next()) {
+					JSONObject search_element = new JSONObject();
+					
+					String post_id = Integer.toString(rs_lesson_list.getInt("idx"));
+					String user_id = rs_lesson_list.getString("user_id");
+					String intro_string = rs_lesson_list.getString("intro_string");
+					String club_detail = rs_lesson_list.getString("club_detail");
+					String data_format = rs_lesson_list.getString("data_format");
+//System.out.println(post_id + " / " + user_id + " / " + op_ntrp + " / " + op_howlong + " / " + op_gender + " / " + location + " / " + court_booked + " / " + p_comment);		
+					search_element.put("post_id", post_id.toString());
+					search_element.put("user_id", user_id);
+					search_element.put("intro_string", intro_string);
+					search_element.put("club_detail", club_detail);
+					search_element.put("data_format", data_format);
+					
+					search_result.add(search_element);
+				}
+			
+			}
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+		
+		return search_result;
+	}
+	
 	public static String db_query_my_wanted(String action, String user_id/*, String location, String ntrp, String howlong, String gender, String court_booked*/) {
 		
 		String return_value = null;
@@ -564,6 +857,46 @@ public class dbQuery {
 		} catch(Exception e) {
 			e.printStackTrace();
 			search_result.put("close_result", "fail");
+		}
+		
+		return_value = search_result.toString();
+		return return_value;
+	}
+	
+	public static String db_query_close_handover(String action, String user_id, String post_id) {
+		
+		String return_value = null;
+		
+		JSONArray my_list;
+		JSONObject search_result = new JSONObject();
+		search_result.put("action", action);
+		search_result.put("user_id", user_id);
+		
+		try {
+			GSTWebAPI_Global_Vars.check_db_connection();
+			ResultSet rs_wanted_list;
+			
+			PreparedStatement ps_wanted_query = GSTWebAPI_Global_Vars.db_conn.prepareStatement("select * from handover where user_id=? and idx = ? and active = ?");
+			ps_wanted_query.setString(1, user_id);
+			ps_wanted_query.setString(2, post_id);
+			ps_wanted_query.setString(3, "y");
+			rs_wanted_list = ps_wanted_query.executeQuery();
+			
+			if(rs_wanted_list != null) {
+				ps_wanted_query = GSTWebAPI_Global_Vars.db_conn.prepareStatement("update handover set active = ? where user_id=? and idx = ?");
+				ps_wanted_query.setString(1, "n");
+				ps_wanted_query.setString(2, user_id);
+				ps_wanted_query.setString(3, post_id);
+				ps_wanted_query.executeUpdate();
+	
+				search_result.put("close_handover_result", "success");
+			} else {
+				search_result.put("close_handover_result", "fail");
+			}
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+			search_result.put("close_handover_result", "fail");
 		}
 		
 		return_value = search_result.toString();

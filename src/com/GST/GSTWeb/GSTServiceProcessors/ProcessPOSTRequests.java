@@ -139,6 +139,30 @@ System.out.println("post request line: " + post_request_str);
 				
 				process_lesson_detail(jsonObject);
 				
+			} else if(action.equals("club_detail_upload")) {
+				
+				process_upload_club_ad(jsonObject);
+				
+			} else if(action.equals("club_ad_list")) {
+				
+				process_club_ad(jsonObject);
+				
+			} else if(action.equals("club_detail")) {
+				
+				process_club_detail(jsonObject);
+				
+			} else if(action.equals("handover_ad_list")) {
+				
+				process_handover_ad(jsonObject);
+				
+			} else if(action.equals("post_handover")) {
+				
+				process_post_handover(jsonObject);
+				
+			} else if(action.equals("close_handover")) {
+				
+				process_close_handover(jsonObject);
+				
 			}
 
 
@@ -146,6 +170,34 @@ System.out.println("post request line: " + post_request_str);
 			e.printStackTrace();
 		}
 		
+	}
+	
+	private void process_upload_club_ad(JSONObject my_info) {
+		
+		try {
+			String upload_clu_ad_result;
+			
+			String action = (String) my_info.get("action");
+			String user_id = (String) my_info.get("user_id");
+			String data_format = (String) my_info.get("data_format");
+			String intro = (String) my_info.get("intro");
+			String comment = (String) my_info.get("comment");
+			String data = (String) my_info.get("data");
+System.out.println(data_format + " / " + intro + " / " + comment + " / " + data);			
+			upload_clu_ad_result = dbQuery.db_query_upload_club_ad(action, user_id, data_format, intro, comment, data);
+System.out.println(upload_clu_ad_result);			
+			// set response code == 200
+			response.setStatus(HttpServletResponse.SC_OK);
+			response.setContentType("application/json; charset=utf-8");
+			
+			PrintWriter out = asyncContext.getResponse().getWriter();
+			out.write(upload_clu_ad_result);
+			out.close();
+			
+			asyncContext.complete();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private void process_lesson_detail(JSONObject my_info) {
@@ -158,7 +210,34 @@ System.out.println("post request line: " + post_request_str);
 			String post_id = (String) my_info.get("post_id");
 			
 			result_lesson_list = dbQuery.db_query_lesson_detail(action, user_id, post_id);
-System.out.println(result_lesson_list);			
+//System.out.println(result_lesson_list);			
+System.out.println("result not printed to save disk space");
+			// set response code == 200
+			response.setStatus(HttpServletResponse.SC_OK);
+			response.setContentType("application/json; charset=utf-8");
+			
+			PrintWriter out = asyncContext.getResponse().getWriter();
+			out.write(result_lesson_list);
+			out.close();
+			
+			asyncContext.complete();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void process_club_detail(JSONObject my_info) {
+		
+		try {
+			String result_lesson_list;
+			
+			String action = (String) my_info.get("action");
+			String user_id = (String) my_info.get("user_id");
+			String post_id = (String) my_info.get("post_id");
+			
+			result_lesson_list = dbQuery.db_query_club_detail(action, user_id, post_id);
+//System.out.println(result_lesson_list);			
+System.out.println("result not printed to save disk space");
 			// set response code == 200
 			response.setStatus(HttpServletResponse.SC_OK);
 			response.setContentType("application/json; charset=utf-8");
@@ -199,6 +278,86 @@ System.out.println(result_lesson_list);
 			e.printStackTrace();
 		}
 		
+	}
+	
+	private void process_club_ad(JSONObject my_info) {
+		
+		try{
+			String result_lesson_list;
+			
+			String action = (String) my_info.get("action");
+			String user_id = (String) my_info.get("user_id");
+			
+			result_lesson_list = dbQuery.db_query_club_ad(action, user_id);
+System.out.println(result_lesson_list);			
+			// set response code == 200
+			response.setStatus(HttpServletResponse.SC_OK);
+			response.setContentType("application/json; charset=utf-8");
+			
+			PrintWriter out = asyncContext.getResponse().getWriter();
+			out.write(result_lesson_list);
+			out.close();
+			
+			asyncContext.complete();
+			
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	private void process_handover_ad(JSONObject my_info) {
+		
+		try{
+			String result_lesson_list;
+			
+			String action = (String) my_info.get("action");
+			String user_id = (String) my_info.get("user_id");
+			
+			result_lesson_list = dbQuery.db_query_handover_ad(action, user_id);
+System.out.println(result_lesson_list);			
+			// set response code == 200
+			response.setStatus(HttpServletResponse.SC_OK);
+			response.setContentType("application/json; charset=utf-8");
+			
+			PrintWriter out = asyncContext.getResponse().getWriter();
+			out.write(result_lesson_list);
+			out.close();
+			
+			asyncContext.complete();
+			
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	private void process_post_handover(JSONObject my_info) {
+		
+		try {
+			String result_lesson_list;
+			
+			String action = (String) my_info.get("action");
+			String user_id = (String) my_info.get("user_id");
+			String intro_string = (String) my_info.get("intro");
+			String handover_detail = (String) my_info.get("comment");
+			
+			result_lesson_list = dbQuery.db_query_post_handover(action, user_id, intro_string, handover_detail);
+System.out.println(result_lesson_list);			
+			// set response code == 200
+			response.setStatus(HttpServletResponse.SC_OK);
+			response.setContentType("application/json; charset=utf-8");
+			
+			PrintWriter out = asyncContext.getResponse().getWriter();
+			out.write(result_lesson_list);
+			out.close();
+			
+			asyncContext.complete();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private void process_withdraw_user(JSONObject message_info) {
@@ -971,6 +1130,32 @@ System.out.println(result_wanted_list);
 		}
 	}
 	
+	private void process_close_handover(JSONObject search_info){
+		try {
+			String result_wanted_list;
+			
+			String action = (String) search_info.get("action");
+			String user_id = (String) search_info.get("user_id");
+			String post_id = (String) search_info.get("post_id");
+
+		
+			result_wanted_list = dbQuery.db_query_close_handover(action, user_id, post_id);
+System.out.println(result_wanted_list);			
+			// set response code == 200
+			response.setStatus(HttpServletResponse.SC_OK);
+			response.setContentType("application/json; charset=utf-8");
+			
+			PrintWriter out = asyncContext.getResponse().getWriter();
+			out.write(result_wanted_list);
+			out.close();
+			
+			asyncContext.complete();
+
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
 	private void process_get_my_message(JSONObject search_info){
 		try {
 			String result_my_msg_list;
@@ -1192,8 +1377,8 @@ System.out.println(login_response.toJSONString());
 		String howlong_str = (String) register_info.get("howlong");
 		float howlogn = Float.valueOf(howlong_str);
 		String ntrp_str = (String) register_info.get("ntrp");
-		if(ntrp_str.equals("NTRP")) ntrp = Float.valueOf(ntrp_str);
-		else ntrp = (float) 1.0;
+		/*if(!ntrp_str.equals("NTRP")) ntrp = Float.valueOf(ntrp_str);
+		else*/ ntrp = (float) 1.0;
 		String gender = (String) register_info.get("gender");
 		
 		register_success = dbQuery.db_query_register(user_name, phone_number, email, user_id, password, location, howlogn, ntrp, gender);
